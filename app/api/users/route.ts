@@ -19,10 +19,21 @@ export async function GET() {
       )
     }
 
-    const { data: users, error } = await supabaseAdmin
+    // 새 스키마(is_paid)가 아직 적용되지 않았을 수 있으므로 두 번 시도
+    let query = await supabaseAdmin
       .from('profiles')
       .select('id, email, name, is_admin, is_paid, created_at')
       .order('created_at', { ascending: false })
+
+    if (query.error?.code === '42703') {
+      // is_paid 컬럼이 없는 경우 기존 스키마로 재조회
+      query = await supabaseAdmin
+        .from('profiles')
+        .select('id, email, name, is_admin, created_at')
+        .order('created_at', { ascending: false })
+    }
+
+    const { data: users, error } = query
 
     if (error) {
       throw error
