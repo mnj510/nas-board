@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getCurrentUser } from '@/lib/auth'
-import pool from '@/lib/db'
+import { supabase } from '@/lib/supabase'
 import EditPost from '@/components/EditPost'
 
 export default async function EditPostPage({
@@ -14,17 +14,17 @@ export default async function EditPostPage({
     redirect('/auth/login')
   }
 
-  // 권한 확인
-  const result = await pool.query(
-    'SELECT author_id FROM posts WHERE id = $1',
-    [params.id]
-  )
+  // 권한 확인: 게시물 작성자 또는 관리자만 수정 가능
+  const { data: post, error } = await supabase
+    .from('posts')
+    .select('author_id')
+    .eq('id', params.id)
+    .single()
 
-  if (result.rows.length === 0) {
+  if (error || !post) {
     redirect(`/board/${params.type}`)
   }
 
-  const post = result.rows[0]
   const canEdit = user.is_admin || user.id === post.author_id
 
   if (!canEdit) {
