@@ -158,21 +158,12 @@ export default function PostDetail({
             <span>조회 {post.view_count}</span>
           </div>
 
-          {post.thumbnail_url && (
-            <div className="relative w-full h-96 mb-6 rounded-lg overflow-hidden bg-gray-200">
-              <img
-                src={post.thumbnail_url}
-                alt={post.title}
-                className="w-full h-full object-cover"
-              />
-            </div>
-          )}
-
           <div
-            className="prose max-w-none mb-8"
+            className="post-content prose max-w-none mb-8 text-gray-900"
             dangerouslySetInnerHTML={{ __html: post.content }}
             style={{
               wordBreak: 'break-word',
+              color: '#111827',
             }}
           />
 

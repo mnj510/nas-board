@@ -59,3 +59,9 @@ body {
   background: #555;
 }
 
+/* 게시글 내용 기본 글자색 (검정) 강제, 리치 텍스트 서식은 유지 */
+.post-content,
+.post-content * {
+  color: #111827;
+}
+
