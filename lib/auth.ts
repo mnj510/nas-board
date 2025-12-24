@@ -55,7 +55,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, name, is_admin, is_banned, banned_until')
+      .select('id, email, name, is_admin')
       .eq('id', user.id)
       .single()
 
@@ -68,8 +68,6 @@ export async function getCurrentUser(): Promise<User | null> {
       email: profile.email,
       name: profile.name,
       is_admin: profile.is_admin || false,
-      is_banned: profile.is_banned || false,
-      banned_until: profile.banned_until || null,
     }
   } catch (error) {
     console.error('Get current user error:', error)

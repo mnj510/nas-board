@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,9 +13,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 응답 객체 먼저 생성
-    const response = NextResponse.json({ success: true })
-
+    const cookieStore = await cookies()
+    
     // Supabase 클라이언트 생성 (쿠키 설정 가능하도록)
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -22,31 +22,21 @@ export async function POST(request: NextRequest) {
       {
         cookies: {
           get(name: string) {
-            return request.cookies.get(name)?.value
+            return cookieStore.get(name)?.value
           },
           set(name: string, value: string, options: CookieOptions) {
-            request.cookies.set({
-              name,
-              value,
-              ...options,
-            })
-            response.cookies.set({
-              name,
-              value,
-              ...options,
-            })
+            try {
+              cookieStore.set({ name, value, ...options })
+            } catch (error) {
+              // 쿠키 설정 실패 무시
+            }
           },
           remove(name: string, options: CookieOptions) {
-            request.cookies.set({
-              name,
-              value: '',
-              ...options,
-            })
-            response.cookies.set({
-              name,
-              value: '',
-              ...options,
-            })
+            try {
+              cookieStore.set({ name, value: '', ...options })
+            } catch (error) {
+              // 쿠키 삭제 실패 무시
+            }
           },
         },
       }
@@ -65,8 +55,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 프로필 정보 가져오기
-    const { data: profile, error: profileError } = await supabase
+    // 프로필 정보 가져오기 (supabaseAdmin 사용)
+    const { supabaseAdmin } = await import('@/lib/supabase')
+    
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: '서버 설정 오류' },
+        { status: 500 }
+      )
+    }
+
+    const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('id, email, name, is_admin')
       .eq('id', data.user.id)
@@ -79,7 +78,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 사용자 정보 반환 (쿠키는 자동으로 설정됨)
+    // 사용자 정보 반환 (쿠키는 createServerClient에서 자동으로 설정됨)
     return NextResponse.json({
       user: {
         id: profile.id,
@@ -87,8 +86,6 @@ export async function POST(request: NextRequest) {
         name: profile.name,
         is_admin: profile.is_admin || false,
       },
-    }, {
-      headers: response.headers,
     })
   } catch (error: any) {
     console.error('Login error:', error)

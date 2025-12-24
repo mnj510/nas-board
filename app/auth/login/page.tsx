@@ -38,11 +38,10 @@ export default function LoginPage() {
       // 사용자 정보 새로고침
       await refreshUser()
       
-      // 약간의 딜레이 후 리다이렉트 (쿠키 설정 완료 대기)
+      // 쿠키 설정 완료 대기 후 리다이렉트
       setTimeout(() => {
-        router.push('/')
-        router.refresh()
-      }, 100)
+        window.location.href = '/'
+      }, 300)
     } catch (err: any) {
       setError(err.message || '로그인에 실패했습니다.')
       setLoading(false)
