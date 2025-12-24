@@ -7,14 +7,12 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { data: post, error } = await supabase
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
+    const { data: post, error } = await client
       .from('posts')
-      .select(`
-        *,
-        profiles:author_id (
-          name
-        )
-      `)
+      .select('*')
       .eq('id', params.id)
       .single()
 
@@ -25,13 +23,20 @@ export async function GET(
       )
     }
 
+    // 프로필 정보 조회
+    const { data: profile } = await client
+      .from('profiles')
+      .select('name')
+      .eq('id', post.author_id)
+      .single()
+
     // 조회수 증가
-    await supabase.rpc('increment_view_count', { post_id: params.id })
+    await client.rpc('increment_view_count', { post_id: params.id })
 
     return NextResponse.json({
       post: {
         ...post,
-        author_name: post.profiles?.name || '알 수 없음',
+        author_name: profile?.name || '알 수 없음',
         view_count: (post.view_count || 0) + 1,
       },
     })

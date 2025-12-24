@@ -7,14 +7,12 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const boardType = searchParams.get('board_type')
 
-    let query = supabase
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
+    let query = client
       .from('posts')
-      .select(`
-        *,
-        profiles:author_id (
-          name
-        )
-      `)
+      .select('*')
       .order('created_at', { ascending: false })
 
     if (boardType) {
@@ -27,17 +25,35 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
-    // 댓글 수 계산
+    if (!posts || posts.length === 0) {
+      return NextResponse.json({ posts: [] })
+    }
+
+    // 작성자 ID 목록 수집
+    const authorIds = [...new Set(posts.map((post) => post.author_id))]
+
+    // 프로필 정보 일괄 조회
+    const { data: profiles } = await client
+      .from('profiles')
+      .select('id, name')
+      .in('id', authorIds)
+
+    // 프로필 맵 생성
+    const profileMap = new Map(
+      (profiles || []).map((profile) => [profile.id, profile.name])
+    )
+
+    // 댓글 수 계산 및 작성자 이름 추가
     const postsWithComments = await Promise.all(
       posts.map(async (post) => {
-        const { count } = await supabase
+        const { count } = await client
           .from('comments')
           .select('*', { count: 'exact', head: true })
           .eq('post_id', post.id)
 
         return {
           ...post,
-          author_name: post.profiles?.name || '알 수 없음',
+          author_name: profileMap.get(post.author_id) || '알 수 없음',
           comment_count: count || 0,
         }
       })
