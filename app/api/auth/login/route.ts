@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient, type CookieOptions } from '@supabase/ssr'
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,6 +11,45 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       )
     }
+
+    const response = NextResponse.next()
+
+    // Supabase 클라이언트 생성 (쿠키 설정 가능하도록)
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return request.cookies.get(name)?.value
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value,
+              ...options,
+            })
+            response.cookies.set({
+              name,
+              value,
+              ...options,
+            })
+          },
+          remove(name: string, options: CookieOptions) {
+            request.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
+            response.cookies.set({
+              name,
+              value: '',
+              ...options,
+            })
+          },
+        },
+      }
+    )
 
     // Supabase Auth로 로그인
     const { data, error } = await supabase.auth.signInWithPassword({
@@ -40,8 +78,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 세션 쿠키 설정을 위한 응답 생성
-    const response = NextResponse.json({
+    // 사용자 정보 반환 (쿠키는 자동으로 설정됨)
+    return NextResponse.json({
       user: {
         id: profile.id,
         email: profile.email,
@@ -49,24 +87,6 @@ export async function POST(request: NextRequest) {
         is_admin: profile.is_admin || false,
       },
     })
-
-    // Supabase 세션 쿠키 설정
-    if (data.session) {
-      response.cookies.set('sb-access-token', data.session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      })
-      response.cookies.set('sb-refresh-token', data.session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      })
-    }
-
-    return response
   } catch (error: any) {
     console.error('Login error:', error)
     return NextResponse.json(

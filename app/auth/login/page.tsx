@@ -25,6 +25,7 @@ export default function LoginPage() {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include', // 쿠키 포함
         body: JSON.stringify({ email, password }),
       })
 
@@ -34,12 +35,16 @@ export default function LoginPage() {
         throw new Error(data.error || '로그인에 실패했습니다.')
       }
 
+      // 사용자 정보 새로고침
       await refreshUser()
-      router.push('/')
-      router.refresh()
+      
+      // 약간의 딜레이 후 리다이렉트 (쿠키 설정 완료 대기)
+      setTimeout(() => {
+        router.push('/')
+        router.refresh()
+      }, 100)
     } catch (err: any) {
       setError(err.message || '로그인에 실패했습니다.')
-    } finally {
       setLoading(false)
     }
   }
@@ -72,7 +77,7 @@ export default function LoginPage() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-gray-900"
                   placeholder="이메일을 입력하세요"
                 />
               </div>
@@ -89,7 +94,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all text-gray-900"
                   placeholder="비밀번호를 입력하세요"
                 />
               </div>
