@@ -12,7 +12,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const response = NextResponse.next()
+    // 응답 객체 먼저 생성
+    const response = NextResponse.json({ success: true })
 
     // Supabase 클라이언트 생성 (쿠키 설정 가능하도록)
     const supabase = createServerClient(
@@ -86,6 +87,8 @@ export async function POST(request: NextRequest) {
         name: profile.name,
         is_admin: profile.is_admin || false,
       },
+    }, {
+      headers: response.headers,
     })
   } catch (error: any) {
     console.error('Login error:', error)
