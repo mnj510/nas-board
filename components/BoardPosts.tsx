@@ -5,7 +5,7 @@ import { BOARD_NAMES } from '@/lib/utils'
 import { useAuth } from './AuthProvider'
 import Link from 'next/link'
 import Navbar from './Navbar'
-import { Plus, Clock, User } from 'lucide-react'
+import { Plus, Clock, User, Eye } from 'lucide-react'
 import { format } from 'date-fns'
 import { ko } from 'date-fns/locale'
 
@@ -108,6 +108,10 @@ export default function BoardPosts({ boardType }: { boardType: string }) {
                       <span>{post.author_name}</span>
                     </div>
                     <div className="flex items-center space-x-4">
+                      <div className="flex items-center space-x-1">
+                        <Eye className="w-4 h-4" />
+                        <span>조회 {post.view_count ?? 0}</span>
+                      </div>
                       <div className="flex items-center space-x-1">
                         <Clock className="w-4 h-4" />
                         <span>
