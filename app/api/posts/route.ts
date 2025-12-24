@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
     }
 
     // 작성자 ID 목록 수집
-    const authorIds = [...new Set(posts.map((post) => post.author_id))]
+    const authorIds = Array.from(new Set(posts.map((post) => post.author_id)))
 
     // 프로필 정보 일괄 조회
     const { data: profiles } = await client
