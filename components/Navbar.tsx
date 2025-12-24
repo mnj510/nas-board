@@ -49,7 +49,7 @@ export default function Navbar() {
                   className="flex items-center space-x-2 text-gray-700 hover:text-primary-600 transition-colors"
                 >
                   <User className="w-5 h-5" />
-                  <span className="font-medium">{user.user_metadata?.name || user.email}</span>
+                  <span className="font-medium">{user.name || user.email}</span>
                 </Link>
                 <button
                   onClick={handleSignOut}
@@ -111,7 +111,7 @@ export default function Navbar() {
                 >
                   <div className="flex items-center space-x-2">
                     <User className="w-5 h-5" />
-                    <span>{user.user_metadata?.name || user.email}</span>
+                    <span>{user.name || user.email}</span>
                   </div>
                 </Link>
                 <button
