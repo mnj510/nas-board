@@ -1,0 +1,52 @@
+name: Deploy to NAS
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18'
+        
+    - name: Install dependencies
+      run: npm ci
+      
+    - name: Build
+      run: npm run build
+      env:
+        NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+        NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+        
+    - name: Deploy to NAS
+      uses: appleboy/scp-action@master
+      with:
+        host: ${{ secrets.NAS_HOST }}
+        username: ${{ secrets.NAS_USERNAME }}
+        key: ${{ secrets.NAS_SSH_KEY }}
+        port: ${{ secrets.NAS_PORT || 22 }}
+        source: "."
+        target: "/volume1/web/nas-board"
+        strip_components: 0
+        
+    - name: SSH and restart
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.NAS_HOST }}
+        username: ${{ secrets.NAS_USERNAME }}
+        key: ${{ secrets.NAS_SSH_KEY }}
+        port: ${{ secrets.NAS_PORT || 22 }}
+        script: |
+          cd /volume1/web/nas-board
+          npm install --production
+          pm2 restart nas-board || pm2 start npm --name "nas-board" -- start
+
