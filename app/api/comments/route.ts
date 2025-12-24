@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 
 export async function GET(request: NextRequest) {
@@ -14,14 +14,12 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    const { data: comments, error } = await supabase
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
+    const { data: comments, error } = await client
       .from('comments')
-      .select(`
-        *,
-        profiles:author_id (
-          name
-        )
-      `)
+      .select('*')
       .eq('post_id', postId)
       .order('created_at', { ascending: true })
 
@@ -29,18 +27,36 @@ export async function GET(request: NextRequest) {
       throw error
     }
 
+    if (!comments || comments.length === 0) {
+      return NextResponse.json({ comments: [] })
+    }
+
+    // 작성자 ID 목록 수집
+    const authorIds = Array.from(new Set(comments.map((c) => c.author_id)))
+
+    // 프로필 정보 일괄 조회
+    const { data: profiles } = await client
+      .from('profiles')
+      .select('id, name')
+      .in('id', authorIds)
+
+    // 프로필 맵 생성
+    const profileMap = new Map(
+      (profiles || []).map((profile) => [profile.id, profile.name])
+    )
+
     // 댓글과 대댓글 분리
     const topLevelComments = comments.filter((c) => !c.parent_id)
     const replies = comments.filter((c) => c.parent_id)
 
     const commentsWithReplies = topLevelComments.map((comment) => ({
       ...comment,
-      author_name: comment.profiles?.name || '알 수 없음',
+      author_name: profileMap.get(comment.author_id) || '알 수 없음',
       replies: replies
         .filter((r) => r.parent_id === comment.id)
         .map((r) => ({
           ...r,
-          author_name: r.profiles?.name || '알 수 없음',
+          author_name: profileMap.get(r.author_id) || '알 수 없음',
         })),
     }))
 
@@ -70,7 +86,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: comment, error } = await supabase
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
+    const { data: comment, error } = await client
       .from('comments')
       .insert({
         content,

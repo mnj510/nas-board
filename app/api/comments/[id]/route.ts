@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseAdmin } from '@/lib/supabase'
 import { getCurrentUser } from '@/lib/auth'
 
 export async function PUT(
@@ -14,8 +14,11 @@ export async function PUT(
 
     const { content } = await request.json()
 
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
     // 권한 확인
-    const { data: existingComment, error: fetchError } = await supabase
+    const { data: existingComment, error: fetchError } = await client
       .from('comments')
       .select('author_id')
       .eq('id', params.id)
@@ -35,7 +38,7 @@ export async function PUT(
       )
     }
 
-    const { data: comment, error } = await supabase
+    const { data: comment, error } = await client
       .from('comments')
       .update({
         content,
@@ -69,8 +72,11 @@ export async function DELETE(
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
 
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
     // 권한 확인
-    const { data: existingComment, error: fetchError } = await supabase
+    const { data: existingComment, error: fetchError } = await client
       .from('comments')
       .select('author_id')
       .eq('id', params.id)
@@ -91,7 +97,7 @@ export async function DELETE(
     }
 
     // 대댓글도 함께 삭제
-    const { error } = await supabase
+    const { error } = await client
       .from('comments')
       .delete()
       .or(`id.eq.${params.id},parent_id.eq.${params.id}`)
