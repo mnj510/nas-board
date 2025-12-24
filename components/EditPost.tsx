@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useAuth } from './AuthProvider'
 import { BOARD_NAMES } from '@/lib/utils'
 import Navbar from './Navbar'
-import ImageUpload from './ImageUpload'
+import RichTextEditor from './RichTextEditor'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
@@ -162,38 +162,28 @@ export default function EditPost({
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                썸네일 이미지
-              </label>
-              <ImageUpload
-                onImageUpload={handleImageUpload}
-                thumbnailUrl={thumbnailUrl}
-                onRemove={() => setThumbnailUrl(null)}
-              />
-            </div>
-
-            <div>
               <label
                 htmlFor="content"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
                 내용
               </label>
-              <textarea
-                id="content"
-                value={content}
-                onChange={(e) => setContent(e.target.value)}
-                required
-                rows={15}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all resize-none"
-                placeholder="내용을 입력하세요"
+              <RichTextEditor
+                content={content}
+                onChange={setContent}
+                onImageUpload={handleImageUpload}
+                onThumbnailSelect={setThumbnailUrl}
+                thumbnailUrl={thumbnailUrl}
               />
+              <p className="mt-2 text-sm text-gray-500">
+                이미지를 드래그 앤 드롭하거나 붙여넣기하여 삽입할 수 있습니다. 이미지 중앙의 '썸네일' 버튼을 클릭하여 썸네일로 설정하세요.
+              </p>
             </div>
 
-            <div className="flex justify-end space-x-4">
+            <div className="flex justify-end gap-4">
               <Link
                 href={`/board/${boardType}/${postId}`}
-                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors text-gray-700"
               >
                 취소
               </Link>

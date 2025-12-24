@@ -61,8 +61,11 @@ export async function PUT(
 
     const { title, content, thumbnail_url } = await request.json()
 
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
     // 권한 확인
-    const { data: existingPost, error: fetchError } = await supabase
+    const { data: existingPost, error: fetchError } = await client
       .from('posts')
       .select('author_id')
       .eq('id', params.id)
@@ -82,7 +85,7 @@ export async function PUT(
       )
     }
 
-    const { data: post, error } = await supabase
+    const { data: post, error } = await client
       .from('posts')
       .update({
         title,

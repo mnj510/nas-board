@@ -168,11 +168,13 @@ export default function PostDetail({
             </div>
           )}
 
-          <div className="prose max-w-none mb-8">
-            <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
-              {post.content}
-            </p>
-          </div>
+          <div
+            className="prose max-w-none mb-8"
+            dangerouslySetInnerHTML={{ __html: post.content }}
+            style={{
+              wordBreak: 'break-word',
+            }}
+          />
 
           <CommentSection postId={postId} />
         </div>
