@@ -4,6 +4,9 @@ CREATE TABLE IF NOT EXISTS profiles (
   email TEXT NOT NULL,
   name TEXT NOT NULL,
   is_admin BOOLEAN DEFAULT FALSE,
+  -- 계정 정지/차단 관련 필드
+  is_banned BOOLEAN DEFAULT FALSE,
+  banned_until TIMESTAMP WITH TIME ZONE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -80,6 +83,11 @@ CREATE POLICY "프로필은 모든 사용자가 읽을 수 있음" ON profiles
 
 CREATE POLICY "사용자는 자신의 프로필을 업데이트할 수 있음" ON profiles
   FOR UPDATE USING (auth.uid() = id);
+
+-- 계정 정지된 사용자는 게시글/댓글 작성 불가하도록 보조 조건 (기존 정책에 추가)
+-- 이미 적용된 인스턴스에는 아래 ALTER TABLE 구문을 한 번 실행해 주세요.
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS is_banned BOOLEAN DEFAULT FALSE;
+-- ALTER TABLE profiles ADD COLUMN IF NOT EXISTS banned_until TIMESTAMPTZ;
 
 -- 게시물 정책
 CREATE POLICY "게시물은 모든 사용자가 읽을 수 있음" ON posts

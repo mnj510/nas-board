@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Navbar from './Navbar'
-import { Users, Crown, Mail } from 'lucide-react'
+import { Users, Crown, Mail, ShieldAlert, Trash2 } from 'lucide-react'
 
 interface UserProfile {
   id: string
@@ -10,11 +10,14 @@ interface UserProfile {
   name: string
   is_admin: boolean
   created_at: string
+  is_banned?: boolean
+  banned_until?: string | null
 }
 
 export default function AdminPanel() {
   const [users, setUsers] = useState<UserProfile[]>([])
   const [loading, setLoading] = useState(true)
+  const [updatingId, setUpdatingId] = useState<string | null>(null)
 
   useEffect(() => {
     loadUsers()
@@ -42,6 +45,7 @@ export default function AdminPanel() {
       return
 
     try {
+      setUpdatingId(userId)
       const response = await fetch(`/api/users/${userId}/admin`, {
         method: 'PUT',
         headers: {
@@ -56,9 +60,75 @@ export default function AdminPanel() {
         throw new Error(data.error || '관리자 상태 변경에 실패했습니다.')
       }
 
-      loadUsers()
+      await loadUsers()
     } catch (err: any) {
       alert(err.message || '관리자 상태 변경에 실패했습니다.')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const updateBan = async (userId: string, days: number | null) => {
+    const label =
+      days === null
+        ? '정지를 해제'
+        : days === 7
+        ? '7일 정지'
+        : days === 30
+        ? '30일 정지'
+        : `${days}일 정지`
+
+    if (!confirm(`이 사용자를 ${label} 하시겠습니까?`)) return
+
+    try {
+      setUpdatingId(userId)
+      const response = await fetch(`/api/users/${userId}/ban`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ days }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '정지 상태 변경에 실패했습니다.')
+      }
+
+      await loadUsers()
+    } catch (err: any) {
+      alert(err.message || '정지 상태 변경에 실패했습니다.')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
+  const deleteUser = async (userId: string) => {
+    if (
+      !confirm(
+        '정말 이 사용자를 완전히 삭제하시겠습니까?\n삭제된 계정은 다시 로그인할 수 없습니다.'
+      )
+    )
+      return
+
+    try {
+      setUpdatingId(userId)
+      const response = await fetch(`/api/users/${userId}/delete`, {
+        method: 'DELETE',
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '사용자 삭제에 실패했습니다.')
+      }
+
+      await loadUsers()
+    } catch (err: any) {
+      alert(err.message || '사용자 삭제에 실패했습니다.')
+    } finally {
+      setUpdatingId(null)
     }
   }
 
@@ -98,6 +168,9 @@ export default function AdminPanel() {
                       상태
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      정지
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                       가입일
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
@@ -134,15 +207,67 @@ export default function AdminPanel() {
                         {new Date(user.created_at).toLocaleDateString('ko-KR')}
                       </td>
                       <td className="px-4 py-4">
+                        {user.is_banned && user.banned_until ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            <ShieldAlert className="w-3 h-3 mr-1" />
+                            정지 ~{' '}
+                            {new Date(user.banned_until).toLocaleDateString(
+                              'ko-KR'
+                            )}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            활동 가능
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
                         <button
                           onClick={() => toggleAdmin(user.id, user.is_admin)}
-                          className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          disabled={updatingId === user.id}
+                          className={`px-3 py-2 mr-2 rounded-lg text-xs font-medium transition-colors ${
                             user.is_admin
                               ? 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                               : 'bg-primary-600 text-white hover:bg-primary-700'
                           }`}
                         >
                           {user.is_admin ? '일반으로 변경' : '관리자로 임명'}
+                        </button>
+                        <div className="inline-flex items-center space-x-1">
+                          <button
+                            onClick={() => updateBan(user.id, 7)}
+                            disabled={updatingId === user.id}
+                            className="px-2 py-1 rounded-lg text-xs font-medium bg-yellow-100 text-yellow-800 hover:bg-yellow-200"
+                          >
+                            7일 정지
+                          </button>
+                          <button
+                            onClick={() => updateBan(user.id, 30)}
+                            disabled={updatingId === user.id}
+                            className="px-2 py-1 rounded-lg text-xs font-medium bg-orange-100 text-orange-800 hover:bg-orange-200"
+                          >
+                            30일 정지
+                          </button>
+                          <button
+                            onClick={() => updateBan(user.id, null)}
+                            disabled={updatingId === user.id}
+                            className="px-2 py-1 rounded-lg text-xs font-medium bg-gray-100 text-gray-700 hover:bg-gray-200"
+                          >
+                            정지 해제
+                          </button>
+                        </div>
+                      </td>
+                      <td className="px-4 py-4 text-sm text-gray-600">
+                        {new Date(user.created_at).toLocaleDateString('ko-KR')}
+                      </td>
+                      <td className="px-4 py-4">
+                        <button
+                          onClick={() => deleteUser(user.id)}
+                          disabled={updatingId === user.id}
+                          className="px-3 py-2 rounded-lg text-xs font-medium bg-red-100 text-red-700 hover:bg-red-200 inline-flex items-center space-x-1"
+                        >
+                          <Trash2 className="w-3 h-3" />
+                          <span>계정 삭제</span>
                         </button>
                       </td>
                     </tr>
