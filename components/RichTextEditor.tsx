@@ -2,7 +2,7 @@
 
 import { useRef, useState, useCallback, useEffect } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Image as ImageIcon, X } from 'lucide-react'
+import { Bold, Image as ImageIcon, Palette, Type as TypeIcon, Underline } from 'lucide-react'
 
 interface RichTextEditorProps {
   content: string
@@ -28,6 +28,21 @@ export default function RichTextEditor({
       editorRef.current.innerHTML = content
     }
   }, [content])
+
+  const handleInput = () => {
+    if (editorRef.current) {
+      onChange(editorRef.current.innerHTML)
+    }
+  }
+
+  const applyFormat = (command: string, value?: string) => {
+    // 선택된 텍스트에 서식 적용
+    if (typeof document !== 'undefined') {
+      document.execCommand(command, false, value)
+      handleInput()
+      editorRef.current?.focus()
+    }
+  }
 
   const insertImage = useCallback(
     async (imageUrl: string, isThumbnail: boolean = false) => {
@@ -177,12 +192,6 @@ export default function RichTextEditor({
     disabled: uploading,
   })
 
-  const handleInput = () => {
-    if (editorRef.current) {
-      onChange(editorRef.current.innerHTML)
-    }
-  }
-
   // 기존 이미지에 썸네일 버튼 추가
   useEffect(() => {
     if (!editorRef.current || !onThumbnailSelect) return
@@ -247,11 +256,68 @@ export default function RichTextEditor({
   return (
     <div
       {...getRootProps()}
-      className={`relative border-2 border-gray-300 rounded-lg min-h-[400px] p-4 ${
+      className={`relative border-2 border-gray-300 rounded-lg min-h-[400px] p-4 bg-white ${
         isDragActive ? 'border-primary-500 bg-primary-50' : ''
       } ${uploading ? 'opacity-50' : ''}`}
     >
       <input {...getInputProps()} />
+
+      {/* 서식 도구 모음 */}
+      <div className="mb-3 flex flex-wrap items-center gap-2 border-b border-gray-200 pb-2">
+        <button
+          type="button"
+          onClick={() => applyFormat('bold')}
+          className="flex items-center gap-1 px-2 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          <Bold className="w-4 h-4" />
+          <span>굵게</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('underline')}
+          className="flex items-center gap-1 px-2 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          <Underline className="w-4 h-4" />
+          <span>밑줄</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('foreColor', '#111827')}
+          className="flex items-center gap-1 px-2 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          <Palette className="w-4 h-4 text-gray-900" />
+          <span>글자색(검정)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('foreColor', '#ef4444')}
+          className="flex items-center gap-1 px-2 py-1 text-sm text-red-600 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          <Palette className="w-4 h-4 text-red-500" />
+          <span>글자색(빨강)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('fontSize', '3')}
+          className="flex items-center gap-1 px-2 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          <TypeIcon className="w-4 h-4" />
+          <span>기본 크기</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => applyFormat('fontSize', '5')}
+          className="flex items-center gap-1 px-2 py-1 text-sm text-gray-700 border border-gray-300 rounded hover:bg-gray-100"
+        >
+          <TypeIcon className="w-4 h-4" />
+          <span>크게</span>
+        </button>
+        <span className="ml-auto flex items-center gap-1 text-xs text-gray-500">
+          <ImageIcon className="w-4 h-4" />
+          <span>이미지 드래그 &amp; 드롭 / 붙여넣기 가능</span>
+        </span>
+      </div>
+
       {isDragActive && (
         <div className="absolute inset-0 bg-primary-100 bg-opacity-50 flex items-center justify-center z-20 rounded-lg">
           <div className="text-center">
@@ -262,17 +328,20 @@ export default function RichTextEditor({
           </div>
         </div>
       )}
+
       <div
         ref={editorRef}
         contentEditable
         onInput={handleInput}
         onPaste={handlePaste}
-        className="outline-none min-h-[400px] prose prose-sm max-w-none"
+        className="outline-none min-h-[400px] prose prose-sm max-w-none text-gray-900"
         style={{
           wordBreak: 'break-word',
+          color: '#111827',
         }}
         suppressContentEditableWarning
       />
+
       {uploading && (
         <div className="absolute top-4 right-4 bg-blue-600 text-white px-4 py-2 rounded-lg shadow-lg">
           이미지 업로드 중...
