@@ -21,67 +21,59 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Supabase Auth로 회원가입
-    const { data: authData, error: authError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
+    if (!supabaseAdmin) {
+      return NextResponse.json(
+        { error: '서버 설정 오류(Supabase Admin 미설정)' },
+        { status: 500 }
+      )
+    }
+
+    // 1) Admin API로 직접 유저 생성 (이메일 인증/발송 없이)
+    const { data: createdUser, error: adminError } =
+      await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true, // 이메일을 바로 인증된 상태로 처리
+        user_metadata: {
           name,
         },
-      },
-    })
+      })
 
-    if (authError || !authData.user) {
+    if (adminError || !createdUser?.user) {
       return NextResponse.json(
-        { error: authError?.message || '회원가입에 실패했습니다.' },
+        { error: adminError?.message || '회원가입에 실패했습니다.' },
         { status: 400 }
       )
     }
 
-    // 프로필이 트리거로 자동 생성되지만, 관리자 권한 설정을 위해 업데이트
+    const user = createdUser.user
+
+    // 2) 관리자 계정이면 profiles 테이블의 is_admin 업데이트
     const isAdmin = email === ADMIN_EMAIL
-    
-    if (isAdmin && supabaseAdmin) {
+
+    if (isAdmin) {
       await supabaseAdmin
         .from('profiles')
         .update({ is_admin: true })
-        .eq('id', authData.user.id)
+        .eq('id', user.id)
     }
 
-    // 프로필 정보 가져오기
+    // 3) 프로필 정보 가져오기
     const { data: profile } = await supabase
       .from('profiles')
       .select('id, email, name, is_admin')
-      .eq('id', authData.user.id)
+      .eq('id', user.id)
       .single()
 
-    const response = NextResponse.json({
+    // 이 API는 회원가입만 처리하고, 로그인은 따로 /auth/login 에서 진행
+    return NextResponse.json({
       user: {
-        id: profile?.id || authData.user.id,
+        id: profile?.id || user.id,
         email: profile?.email || email,
         name: profile?.name || name,
         is_admin: profile?.is_admin || isAdmin,
       },
     })
-
-    // 세션이 있으면 쿠키 설정
-    if (authData.session) {
-      response.cookies.set('sb-access-token', authData.session.access_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 7, // 7 days
-      })
-      response.cookies.set('sb-refresh-token', authData.session.refresh_token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        maxAge: 60 * 60 * 24 * 30, // 30 days
-      })
-    }
-
-    return response
   } catch (error: any) {
     console.error('Signup error:', error)
     return NextResponse.json(
