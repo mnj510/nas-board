@@ -93,7 +93,10 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { data: post, error } = await supabase
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
+    const { data: post, error } = await client
       .from('posts')
       .insert({
         title,
@@ -106,6 +109,7 @@ export async function POST(request: NextRequest) {
       .single()
 
     if (error) {
+      console.error('Create post error details:', error)
       throw error
     }
 
