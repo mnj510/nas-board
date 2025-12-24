@@ -16,7 +16,7 @@ export default function EditPost({
   postId: string
   boardType: string
 }) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
@@ -24,6 +24,7 @@ export default function EditPost({
   const [loading, setLoading] = useState(false)
   const [loadingPost, setLoadingPost] = useState(true)
   const [error, setError] = useState('')
+  const [isPremium, setIsPremium] = useState(false)
 
   useEffect(() => {
     loadPost()
@@ -41,6 +42,7 @@ export default function EditPost({
       setTitle(data.post.title)
       setContent(data.post.content)
       setThumbnailUrl(data.post.thumbnail_url)
+      setIsPremium(!!data.post.is_premium)
     } catch (err: any) {
       setError(err.message || '게시물을 불러오는데 실패했습니다.')
     } finally {
@@ -89,6 +91,7 @@ export default function EditPost({
           title: title.trim(),
           content: content.trim(),
           thumbnail_url: thumbnailUrl,
+          is_premium: isAdmin && boardType !== 'question' ? isPremium : false,
         }),
       })
 
@@ -160,6 +163,26 @@ export default function EditPost({
                 placeholder="제목을 입력하세요"
               />
             </div>
+
+            {isAdmin && boardType !== 'question' && (
+              <div className="flex items-center justify-between border border-yellow-200 bg-yellow-50 px-4 py-3 rounded-lg">
+                <label className="flex items-center space-x-2 text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={isPremium}
+                    onChange={(e) => setIsPremium(e.target.checked)}
+                    className="h-4 w-4 text-primary-600 border-gray-300 rounded"
+                  />
+                  <span>
+                    이 글을 <span className="font-semibold">유료 회원 전용</span>으로
+                    설정
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500">
+                  유료 회원으로 설정된 사용자가 모든 글을 볼 수 있습니다.
+                </p>
+              </div>
+            )}
 
             <div>
               <label

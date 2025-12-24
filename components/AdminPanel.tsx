@@ -12,6 +12,7 @@ interface UserProfile {
   created_at: string
   is_banned?: boolean
   banned_until?: string | null
+  is_paid?: boolean
 }
 
 export default function AdminPanel() {
@@ -132,6 +133,38 @@ export default function AdminPanel() {
     }
   }
 
+  const togglePaid = async (userId: string, currentStatus: boolean) => {
+    if (
+      !confirm(
+        `이 사용자를 ${currentStatus ? '무료 회원으로' : '유료 회원으로'} 변경하시겠습니까?`
+      )
+    )
+      return
+
+    try {
+      setUpdatingId(userId)
+      const response = await fetch(`/api/users/${userId}/paid`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ is_paid: !currentStatus }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || '유료 회원 상태 변경에 실패했습니다.')
+      }
+
+      await loadUsers()
+    } catch (err: any) {
+      alert(err.message || '유료 회원 상태 변경에 실패했습니다.')
+    } finally {
+      setUpdatingId(null)
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
       <Navbar />
@@ -166,6 +199,9 @@ export default function AdminPanel() {
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                       상태
+                    </th>
+                    <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      유료 회원
                     </th>
                     <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
                       정지
@@ -207,6 +243,17 @@ export default function AdminPanel() {
                         {new Date(user.created_at).toLocaleDateString('ko-KR')}
                       </td>
                       <td className="px-4 py-4">
+                        {user.is_paid ? (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            유료 회원
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            무료 회원
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-4">
                         {user.is_banned && user.banned_until ? (
                           <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-red-100 text-red-800">
                             <ShieldAlert className="w-3 h-3 mr-1" />
@@ -232,6 +279,13 @@ export default function AdminPanel() {
                           }`}
                         >
                           {user.is_admin ? '일반으로 변경' : '관리자로 임명'}
+                        </button>
+                        <button
+                          onClick={() => togglePaid(user.id, !!user.is_paid)}
+                          disabled={updatingId === user.id}
+                          className="px-3 py-2 mr-2 rounded-lg text-xs font-medium transition-colors bg-blue-50 text-blue-700 hover:bg-blue-100"
+                        >
+                          {user.is_paid ? '무료로 변경' : '유료로 변경'}
                         </button>
                         <div className="inline-flex items-center space-x-1">
                           <button

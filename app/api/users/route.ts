@@ -21,7 +21,7 @@ export async function GET() {
 
     const { data: users, error } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, name, is_admin, created_at')
+      .select('id, email, name, is_admin, is_paid, created_at')
       .order('created_at', { ascending: false })
 
     if (error) {

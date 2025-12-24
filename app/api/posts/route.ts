@@ -29,6 +29,9 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ posts: [] })
     }
 
+    // 현재 사용자 정보 (유료 회원 여부 확인)
+    const currentUser = await getCurrentUser()
+
     // 작성자 ID 목록 수집
     const authorIds = Array.from(new Set(posts.map((post) => post.author_id)))
 
@@ -59,7 +62,15 @@ export async function GET(request: NextRequest) {
       })
     )
 
-    return NextResponse.json({ posts: postsWithComments })
+    // 유료글 필터링 (관리자 또는 유료 회원만 볼 수 있음)
+    const filtered = postsWithComments.filter((post) => {
+      if (!post.is_premium) return true
+      if (!currentUser) return false
+      if (currentUser.is_admin) return true
+      return currentUser.is_paid === true
+    })
+
+    return NextResponse.json({ posts: filtered })
   } catch (error: any) {
     console.error('Get posts error:', error)
     return NextResponse.json(
@@ -76,7 +87,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
 
-    const { title, content, board_type, thumbnail_url } = await request.json()
+    const { title, content, board_type, thumbnail_url, is_premium } = await request.json()
 
     if (!title || !content || !board_type) {
       return NextResponse.json(
@@ -104,6 +115,7 @@ export async function POST(request: NextRequest) {
         board_type,
         author_id: user.id,
         thumbnail_url: thumbnail_url || null,
+        is_premium: !!is_premium,
       })
       .select()
       .single()

@@ -10,13 +10,14 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function WritePost({ boardType }: { boardType: string }) {
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isPremium, setIsPremium] = useState(false)
 
   const handleImageUpload = async (file: File): Promise<string> => {
     if (!user) throw new Error('로그인이 필요합니다.')
@@ -66,6 +67,8 @@ export default function WritePost({ boardType }: { boardType: string }) {
           content: content.trim(),
           board_type: boardType,
           thumbnail_url: thumbnailUrl,
+          // 관리자만 유료글 설정 가능, 질문 게시판은 항상 무료 처리
+          is_premium: isAdmin && boardType !== 'question' ? isPremium : false,
         }),
       })
 
@@ -124,6 +127,26 @@ export default function WritePost({ boardType }: { boardType: string }) {
                 placeholder="제목을 입력하세요"
               />
             </div>
+
+            {isAdmin && boardType !== 'question' && (
+              <div className="flex items-center justify-between border border-yellow-200 bg-yellow-50 px-4 py-3 rounded-lg">
+                <label className="flex items-center space-x-2 text-sm text-gray-800">
+                  <input
+                    type="checkbox"
+                    checked={isPremium}
+                    onChange={(e) => setIsPremium(e.target.checked)}
+                    className="h-4 w-4 text-primary-600 border-gray-300 rounded"
+                  />
+                  <span>
+                    이 글을 <span className="font-semibold">유료 회원 전용</span>으로
+                    설정
+                  </span>
+                </label>
+                <p className="text-xs text-gray-500">
+                  유료 회원으로 설정된 사용자가 모든 글을 볼 수 있습니다.
+                </p>
+              </div>
+            )}
 
             <div>
               <label

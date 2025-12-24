@@ -23,6 +23,19 @@ export async function GET(
       )
     }
 
+    // 유료글 접근 제한: 유료글인데 유료회원/관리자가 아니면 차단
+    const currentUser = await getCurrentUser()
+    if (post.is_premium) {
+      const allowed =
+        currentUser && (currentUser.is_admin || currentUser.is_paid === true)
+      if (!allowed) {
+        return NextResponse.json(
+          { error: '유료 회원 전용 게시글입니다.' },
+          { status: 403 }
+        )
+      }
+    }
+
     // 프로필 정보 조회
     const { data: profile } = await client
       .from('profiles')
@@ -59,7 +72,7 @@ export async function PUT(
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
 
-    const { title, content, thumbnail_url } = await request.json()
+    const { title, content, thumbnail_url, is_premium } = await request.json()
 
     // supabaseAdmin을 사용하여 RLS 우회
     const client = supabaseAdmin || supabase
@@ -91,6 +104,7 @@ export async function PUT(
         title,
         content,
         thumbnail_url: thumbnail_url || null,
+        is_premium: !!is_premium,
         updated_at: new Date().toISOString(),
       })
       .eq('id', params.id)

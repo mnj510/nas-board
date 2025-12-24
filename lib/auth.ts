@@ -7,8 +7,8 @@ export interface User {
   email: string
   name: string
   is_admin: boolean
-  is_banned?: boolean
-  banned_until?: string | null
+  // 유료 회원 여부
+  is_paid?: boolean
 }
 
 // Supabase Auth를 사용한 현재 사용자 가져오기
@@ -55,7 +55,7 @@ export async function getCurrentUser(): Promise<User | null> {
 
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
-      .select('id, email, name, is_admin')
+      .select('id, email, name, is_admin, is_paid')
       .eq('id', user.id)
       .single()
 
@@ -68,6 +68,7 @@ export async function getCurrentUser(): Promise<User | null> {
       email: profile.email,
       name: profile.name,
       is_admin: profile.is_admin || false,
+      is_paid: profile.is_paid || false,
     }
   } catch (error) {
     console.error('Get current user error:', error)

@@ -7,6 +7,8 @@ CREATE TABLE IF NOT EXISTS profiles (
   -- 계정 정지/차단 관련 필드
   is_banned BOOLEAN DEFAULT FALSE,
   banned_until TIMESTAMP WITH TIME ZONE,
+  -- 유료 회원 여부
+  is_paid BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
@@ -20,6 +22,8 @@ CREATE TABLE IF NOT EXISTS posts (
   author_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   thumbnail_url TEXT,
   view_count INTEGER DEFAULT 0,
+   -- 유료 회원 전용 글 여부
+  is_premium BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
