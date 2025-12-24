@@ -20,7 +20,7 @@ export async function GET() {
     }
 
     // 새 스키마(is_paid)가 아직 적용되지 않았을 수 있으므로 두 번 시도
-    let query = await supabaseAdmin
+    let query: any = await supabaseAdmin
       .from('profiles')
       .select('id, email, name, is_admin, is_paid, created_at')
       .order('created_at', { ascending: false })
