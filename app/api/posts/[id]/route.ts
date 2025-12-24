@@ -121,8 +121,11 @@ export async function DELETE(
       return NextResponse.json({ error: '로그인이 필요합니다.' }, { status: 401 })
     }
 
+    // supabaseAdmin을 사용하여 RLS 우회
+    const client = supabaseAdmin || supabase
+
     // 권한 확인
-    const { data: existingPost, error: fetchError } = await supabase
+    const { data: existingPost, error: fetchError } = await client
       .from('posts')
       .select('author_id')
       .eq('id', params.id)
@@ -142,7 +145,7 @@ export async function DELETE(
       )
     }
 
-    const { error } = await supabase
+    const { error } = await client
       .from('posts')
       .delete()
       .eq('id', params.id)
